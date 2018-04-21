@@ -1,10 +1,20 @@
-package tribonachimath
+// Package tribonachi contains functions to calculate tribonachi numbers.
+package tribonachi
 
 import (
 	"math/big"
 )
 
-func TribonachiSimple(nIndex *big.Int) *big.Int {
+// Simple calculate tribonachi number with specified index (nIdex)
+// using Dynamic Programming.
+//
+// nIndex *big.Int - natural integer contains tribonachi number position.
+//
+// Function returns *big.Int contains tribonachi number with specified position.
+//
+// Function use three variables to keep track of previous three numbers.
+// Time complexity of this function is linear.
+func Simple(nIndex *big.Int) *big.Int {
 
 	nMinus3, nMinus2, nMinus1 := big.NewInt(0), big.NewInt(0), big.NewInt(1)
 
