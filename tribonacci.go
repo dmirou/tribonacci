@@ -1,34 +1,34 @@
-// Package tribonachi contains functions to calculate tribonachi numbers.
-package tribonachi
+// Package tribonacci contains functions to calculate tribonacci numbers.
+package tribonacci
 
 import (
 	"math/big"
 )
 
-// Simple calculate tribonachi number with specified index (nIdex)
+// Simple calculate tribonacci number with specified position (n)
 // using Dynamic Programming.
 //
-// nIndex int - natural integer contains tribonachi number position.
+// n int - natural integer contains tribonacci number position.
 //
-// Function returns *big.Int contains tribonachi number with specified position.
+// Function returns *big.Int contains tribonacci number with specified position.
 //
 // Function use three variables to keep track of previous three numbers.
 // Time complexity of this function is O(n).
-func Simple(nIndex int) *big.Int {
+func Simple(n int) *big.Int {
 
 	nMinus3, nMinus2, nMinus1 := big.NewInt(0), big.NewInt(0), big.NewInt(1)
 
 	firstThreeValues := [3]*big.Int{nMinus3, nMinus2, nMinus1}
 
 	for i := 0; i < len(firstThreeValues); i++ {
-		if nIndex == i+1 {
+		if n == i+1 {
 			return firstThreeValues[i]
 		}
 	}
 
 	nValue := calcNValue(nMinus1, nMinus2, nMinus3)
 
-	for i := 4; i < nIndex; i++ {
+	for i := 4; i < n; i++ {
 
 		nMinus3, nMinus2, nMinus1 = nMinus2, nMinus1, nValue
 
@@ -47,18 +47,18 @@ func calcNValue(nMinus1, nMinus2, nMinus3 *big.Int) *big.Int {
 	return nValue
 }
 
-// Matrix calculate tribonachi number with specified index (nIdex)
+// Matrix calculate tribonacci number with specified position (n)
 // using matrix exponentiation.
 //
-// nIndex int - natural integer contains tribonachi number position.
+// n int - natural integer contains tribonacci number position.
 //
-// Function returns *big.Int contains tribonachi number with specified position.
+// Function returns *big.Int contains tribonacci number with specified position.
 //
 // Function use three variables to keep track of previous three numbers.
 // Time complexity of this function is O(log n).
-func Matrix(nIndex int) *big.Int {
+func Matrix(n int) *big.Int {
 
-	if nIndex == 1 || nIndex == 2 {
+	if n == 1 || n == 2 {
 		return big.NewInt(0)
 	}
 
@@ -68,14 +68,23 @@ func Matrix(nIndex int) *big.Int {
 		{big.NewInt(0), big.NewInt(1), big.NewInt(0)},
 	}
 
-	matrixE = power(matrixE, nIndex-3)
+	matrixE = power(matrixE, n-3)
 
 	// T[0][0] contains the tribonacci number
 	// so return it
 	return matrixE[0][0]
 }
 
+type matrixElement struct {
+	i, j  int
+	value *big.Int
+}
+
 func multiply(matrixA, matrixB [3][3]*big.Int) [3][3]*big.Int {
+
+	var n = 3
+
+	channel := make(chan *matrixElement)
 
 	result := [3][3]*big.Int{
 		{big.NewInt(0), big.NewInt(0), big.NewInt(0)},
@@ -83,24 +92,41 @@ func multiply(matrixA, matrixB [3][3]*big.Int) [3][3]*big.Int {
 		{big.NewInt(0), big.NewInt(0), big.NewInt(0)},
 	}
 
-	var n = 3
-
 	for i := 0; i < n; i++ {
 		for j := 0; j < n; j++ {
-			for k := 0; k < n; k++ {
-
-				mulResult := new(big.Int).Mul(matrixA[i][k], matrixB[k][j])
-
-				result[i][j].Add(result[i][j], mulResult)
-			}
+			go caclAij(matrixA, matrixB, i, j, channel)
 		}
+	}
+
+	for i := 0; i < n*n; i++ {
+		matrixEl := <-channel
+		result[matrixEl.i][matrixEl.j] = matrixEl.value
 	}
 
 	return result
 }
 
-// Recursive function to raise the matrix
-// matrixA to the power n
+// calcAij calculates A[i,j] element of matrix multiplication (A*B)
+// and send matrixElement result into channel
+func caclAij(matrixA, matrixB [3][3]*big.Int, i, j int, channel chan *matrixElement) {
+
+	var n = 3
+
+	Aij := big.NewInt(0)
+
+	for k := 0; k < n; k++ {
+
+		mulResult := new(big.Int).Mul(matrixA[i][k], matrixB[k][j])
+
+		Aij.Add(Aij, mulResult)
+	}
+
+	result := matrixElement{i: i, j: j, value: Aij}
+
+	channel <- &result
+}
+
+// power raises the matrix matrixA to the power n
 func power(matrixA [3][3]*big.Int, n int) [3][3]*big.Int {
 
 	if n == 0 || n == 1 {
@@ -113,13 +139,13 @@ func power(matrixA [3][3]*big.Int, n int) [3][3]*big.Int {
 
 	if n%2 != 0 {
 
-		M := [3][3]*big.Int{
+		matrixE := [3][3]*big.Int{
 			{big.NewInt(1), big.NewInt(1), big.NewInt(1)},
 			{big.NewInt(1), big.NewInt(0), big.NewInt(0)},
 			{big.NewInt(0), big.NewInt(1), big.NewInt(0)},
 		}
 
-		matrixA = multiply(matrixA, M)
+		matrixA = multiply(matrixA, matrixE)
 	}
 
 	return matrixA
