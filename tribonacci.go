@@ -2,8 +2,12 @@
 package tribonacci
 
 import (
+	"errors"
 	"math/big"
 )
+
+// ErrInvalidArg indicates that a argument value is out of valid range.
+var ErrInvalidArg = errors.New("source argument 'n' is invalid")
 
 // Simple calculate tribonacci number with specified position (n)
 // using Dynamic Programming.
@@ -14,7 +18,11 @@ import (
 //
 // Function use three variables to keep track of previous three numbers.
 // Time complexity of this function is O(n).
-func Simple(n int) *big.Int {
+func Simple(n int) (*big.Int, error) {
+
+	if n <= 0 {
+		return big.NewInt(0), ErrInvalidArg
+	}
 
 	nMinus3, nMinus2, nMinus1 := big.NewInt(0), big.NewInt(0), big.NewInt(1)
 
@@ -22,7 +30,7 @@ func Simple(n int) *big.Int {
 
 	for i := 0; i < len(firstThreeValues); i++ {
 		if n == i+1 {
-			return firstThreeValues[i]
+			return firstThreeValues[i], nil
 		}
 	}
 
@@ -35,7 +43,7 @@ func Simple(n int) *big.Int {
 		nValue = calcNValue(nMinus1, nMinus2, nMinus3)
 	}
 
-	return nValue
+	return nValue, nil
 }
 
 func calcNValue(nMinus1, nMinus2, nMinus3 *big.Int) *big.Int {
@@ -56,10 +64,14 @@ func calcNValue(nMinus1, nMinus2, nMinus3 *big.Int) *big.Int {
 //
 // Function use three variables to keep track of previous three numbers.
 // Time complexity of this function is O(log n).
-func Matrix(n int) *big.Int {
+func Matrix(n int) (*big.Int, error) {
+
+	if n <= 0 {
+		return big.NewInt(0), ErrInvalidArg
+	}
 
 	if n == 1 || n == 2 {
-		return big.NewInt(0)
+		return big.NewInt(0), nil
 	}
 
 	matrixE := [3][3]*big.Int{
@@ -72,7 +84,7 @@ func Matrix(n int) *big.Int {
 
 	// T[0][0] contains the tribonacci number
 	// so return it
-	return matrixE[0][0]
+	return matrixE[0][0], nil
 }
 
 type matrixElement struct {
