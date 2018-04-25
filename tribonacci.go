@@ -55,16 +55,20 @@ func calcNValue(nMinus1, nMinus2, nMinus3 *big.Int) *big.Int {
 	return nValue
 }
 
-// Matrix calculate tribonacci number with specified position (n)
+// MatrixManaged calculate tribonacci number with specified position (n)
 // using matrix exponentiation.
 //
 // n int - natural integer contains tribonacci number position.
+// quit chan bool - channel for interrupting the function
 //
 // Function returns *big.Int contains tribonacci number with specified position.
+// Function is interrupted if the channel 'quit' was closed. In this case, the
+// function returns the current computed value. You should not use this value
+// in any way, because it is wrong.
 //
-// Function use three variables to keep track of previous three numbers.
+// Function use matrix multiplication to calculate tribonacci number.
 // Time complexity of this function is O(log n).
-func Matrix(n int) (*big.Int, error) {
+func MatrixManaged(n int, quit chan bool) (*big.Int, error) {
 
 	if n <= 0 {
 		return big.NewInt(0), ErrInvalidArg
@@ -80,7 +84,7 @@ func Matrix(n int) (*big.Int, error) {
 		{big.NewInt(0), big.NewInt(1), big.NewInt(0)},
 	}
 
-	matrixE = power(matrixE, n-3)
+	matrixE = powerManaged(matrixE, n-3, quit)
 
 	// T[0][0] contains the tribonacci number
 	// so return it
@@ -138,27 +142,33 @@ func caclAij(matrixA, matrixB [3][3]*big.Int, i, j int, channel chan *matrixElem
 	channel <- &result
 }
 
-// power raises the matrix matrixA to the power n
-func power(matrixA [3][3]*big.Int, n int) [3][3]*big.Int {
+// powerManaged raises the matrix matrixA to the power n
+// Function is interrupted if the channel 'quit' was closed.
+func powerManaged(matrixA [3][3]*big.Int, n int, quit chan bool) [3][3]*big.Int {
 
-	if n == 0 || n == 1 {
+	select {
+	case <-quit:
 		return matrixA
-	}
-
-	matrixA = power(matrixA, n/2)
-
-	matrixA = multiply(matrixA, matrixA)
-
-	if n%2 != 0 {
-
-		matrixE := [3][3]*big.Int{
-			{big.NewInt(1), big.NewInt(1), big.NewInt(1)},
-			{big.NewInt(1), big.NewInt(0), big.NewInt(0)},
-			{big.NewInt(0), big.NewInt(1), big.NewInt(0)},
+	default:
+		if n == 0 || n == 1 {
+			return matrixA
 		}
 
-		matrixA = multiply(matrixA, matrixE)
-	}
+		matrixA = powerManaged(matrixA, n/2, quit)
 
-	return matrixA
+		matrixA = multiply(matrixA, matrixA)
+
+		if n%2 != 0 {
+
+			matrixE := [3][3]*big.Int{
+				{big.NewInt(1), big.NewInt(1), big.NewInt(1)},
+				{big.NewInt(1), big.NewInt(0), big.NewInt(0)},
+				{big.NewInt(0), big.NewInt(1), big.NewInt(0)},
+			}
+
+			matrixA = multiply(matrixA, matrixE)
+		}
+
+		return matrixA
+	}
 }

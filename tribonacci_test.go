@@ -33,11 +33,13 @@ func TestSimpleValidDataSource(t *testing.T) {
 	}
 }
 
-func TestMatrixValidDataSource(t *testing.T) {
+func TestMatrixManagedValidDataSource(t *testing.T) {
 
 	for n, expectedTribonacci := range nToTribonacciValidMap {
 
-		actualTribonacci, actualErr := Matrix(n)
+		quit := make(chan bool)
+
+		actualTribonacci, actualErr := MatrixManaged(n, quit)
 
 		checkTribonnaciErr(t, nil, actualErr)
 
