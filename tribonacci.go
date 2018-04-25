@@ -125,7 +125,7 @@ func powerManaged(matrixA [3][3]*big.Int, n int, quit chan bool) ([3][3]*big.Int
 			return matrixA, ok
 		}
 
-		matrixA = multiply(matrixA, matrixA)
+		matrixA = multiplyManaged(matrixA, matrixA, quit)
 
 		if n%2 != 0 {
 
@@ -135,7 +135,7 @@ func powerManaged(matrixA [3][3]*big.Int, n int, quit chan bool) ([3][3]*big.Int
 				{big.NewInt(0), big.NewInt(1), big.NewInt(0)},
 			}
 
-			matrixA = multiply(matrixA, matrixE)
+			matrixA = multiplyManaged(matrixA, matrixE, quit)
 		}
 
 		return matrixA, true
@@ -147,7 +147,7 @@ type matrixElement struct {
 	value *big.Int
 }
 
-func multiply(matrixA, matrixB [3][3]*big.Int) [3][3]*big.Int {
+func multiplyManaged(matrixA, matrixB [3][3]*big.Int, quit chan bool) [3][3]*big.Int {
 
 	var n = 3
 
@@ -160,8 +160,13 @@ func multiply(matrixA, matrixB [3][3]*big.Int) [3][3]*big.Int {
 	for i := 0; i < n; i++ {
 		for j := 0; j < n; j++ {
 			for k := 0; k < n; k++ {
-				mulResult := new(big.Int).Mul(matrixA[i][k], matrixB[k][j])
-				result[i][j] = result[i][j].Add(result[i][j], mulResult)
+				select {
+				case <-quit:
+					return result
+				default:
+					mulResult := new(big.Int).Mul(matrixA[i][k], matrixB[k][j])
+					result[i][j] = result[i][j].Add(result[i][j], mulResult)
+				}
 			}
 		}
 	}
