@@ -9,6 +9,9 @@ import (
 // ErrInvalidArg indicates that a argument value is out of valid range.
 var ErrInvalidArg = errors.New("source argument 'n' is invalid")
 
+// ErrCalcInterrupted indicates that function calculation was interrupted.
+var ErrCalcInterrupted = errors.New("calculation was interrupted")
+
 // Simple calculate tribonacci number with specified position (n)
 // using Dynamic Programming.
 //
@@ -61,10 +64,13 @@ func calcNValue(nMinus1, nMinus2, nMinus3 *big.Int) *big.Int {
 // n int - natural integer contains tribonacci number position.
 // quit chan bool - channel for interrupting the function
 //
-// Function returns *big.Int contains tribonacci number with specified position.
-// Function is interrupted if the channel 'quit' was closed. In this case, the
-// function returns the current computed value. You should not use this value
-// in any way, because it is wrong.
+//
+// If n is negative or zero function return 0 and invalid argument error.
+// else if the function is complete, function return tribonnaci number with
+// specified position as first argument, and nil as second.
+//
+// If the channel 'quit' was closed, then the function is interrupted. In this case, the
+// function returns 0 as first argument and ErrCalcInterrupted as second.
 //
 // Function use matrix multiplication to calculate tribonacci number.
 // Time complexity of this function is O(log n).
@@ -84,11 +90,56 @@ func MatrixManaged(n int, quit chan bool) (*big.Int, error) {
 		{big.NewInt(0), big.NewInt(1), big.NewInt(0)},
 	}
 
-	matrixE = powerManaged(matrixE, n-3, quit)
+	var ok bool
+
+	matrixE, ok = powerManaged(matrixE, n-3, quit)
+
+	if !ok {
+		return big.NewInt(0), ErrCalcInterrupted
+	}
 
 	// T[0][0] contains the tribonacci number
 	// so return it
 	return matrixE[0][0], nil
+}
+
+// powerManaged raises the matrix matrixA to the power n
+// If second returned argument is true, first returned argument contains matrixA^n.
+// else first returned argument contains current calculated matrix just as
+// the channel 'quit' was closed.
+func powerManaged(matrixA [3][3]*big.Int, n int, quit chan bool) ([3][3]*big.Int, bool) {
+
+	select {
+	case <-quit:
+		return matrixA, false
+	default:
+		if n == 0 || n == 1 {
+			return matrixA, true
+		}
+
+		var ok bool
+
+		matrixA, ok = powerManaged(matrixA, n/2, quit)
+
+		if !ok {
+			return matrixA, ok
+		}
+
+		matrixA = multiply(matrixA, matrixA)
+
+		if n%2 != 0 {
+
+			matrixE := [3][3]*big.Int{
+				{big.NewInt(1), big.NewInt(1), big.NewInt(1)},
+				{big.NewInt(1), big.NewInt(0), big.NewInt(0)},
+				{big.NewInt(0), big.NewInt(1), big.NewInt(0)},
+			}
+
+			matrixA = multiply(matrixA, matrixE)
+		}
+
+		return matrixA, true
+	}
 }
 
 type matrixElement struct {
@@ -140,35 +191,4 @@ func caclAij(matrixA, matrixB [3][3]*big.Int, i, j int, channel chan *matrixElem
 	result := matrixElement{i: i, j: j, value: Aij}
 
 	channel <- &result
-}
-
-// powerManaged raises the matrix matrixA to the power n
-// Function is interrupted if the channel 'quit' was closed.
-func powerManaged(matrixA [3][3]*big.Int, n int, quit chan bool) [3][3]*big.Int {
-
-	select {
-	case <-quit:
-		return matrixA
-	default:
-		if n == 0 || n == 1 {
-			return matrixA
-		}
-
-		matrixA = powerManaged(matrixA, n/2, quit)
-
-		matrixA = multiply(matrixA, matrixA)
-
-		if n%2 != 0 {
-
-			matrixE := [3][3]*big.Int{
-				{big.NewInt(1), big.NewInt(1), big.NewInt(1)},
-				{big.NewInt(1), big.NewInt(0), big.NewInt(0)},
-				{big.NewInt(0), big.NewInt(1), big.NewInt(0)},
-			}
-
-			matrixA = multiply(matrixA, matrixE)
-		}
-
-		return matrixA
-	}
 }
