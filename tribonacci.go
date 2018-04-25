@@ -151,8 +151,6 @@ func multiply(matrixA, matrixB [3][3]*big.Int) [3][3]*big.Int {
 
 	var n = 3
 
-	channel := make(chan *matrixElement)
-
 	result := [3][3]*big.Int{
 		{big.NewInt(0), big.NewInt(0), big.NewInt(0)},
 		{big.NewInt(0), big.NewInt(0), big.NewInt(0)},
@@ -161,34 +159,12 @@ func multiply(matrixA, matrixB [3][3]*big.Int) [3][3]*big.Int {
 
 	for i := 0; i < n; i++ {
 		for j := 0; j < n; j++ {
-			go caclAij(matrixA, matrixB, i, j, channel)
+			for k := 0; k < n; k++ {
+				mulResult := new(big.Int).Mul(matrixA[i][k], matrixB[k][j])
+				result[i][j] = result[i][j].Add(result[i][j], mulResult)
+			}
 		}
 	}
 
-	for i := 0; i < n*n; i++ {
-		matrixEl := <-channel
-		result[matrixEl.i][matrixEl.j] = matrixEl.value
-	}
-
 	return result
-}
-
-// calcAij calculates A[i,j] element of matrix multiplication (A*B)
-// and send matrixElement result into channel
-func caclAij(matrixA, matrixB [3][3]*big.Int, i, j int, channel chan *matrixElement) {
-
-	var n = 3
-
-	Aij := big.NewInt(0)
-
-	for k := 0; k < n; k++ {
-
-		mulResult := new(big.Int).Mul(matrixA[i][k], matrixB[k][j])
-
-		Aij.Add(Aij, mulResult)
-	}
-
-	result := matrixElement{i: i, j: j, value: Aij}
-
-	channel <- &result
 }
